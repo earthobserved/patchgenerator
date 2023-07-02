@@ -12,21 +12,30 @@ class PatchGenerator:
     Args:
         xsize (int): Total size along the x-axis.
         ysize (int): Total size along the y-axis.
-        x_block_size (int): Block size along the x-axis.
-        y_block_size (int): Block size along the y-axis.
+        x_patch_size (int): Patch size along the x-axis.
+        y_patch_size (int): Patch size along the y-axis.
         x_overlap (int, optional): Overlap size in the x-axis. Defaults to 0.
         y_overlap (int, optional): Overlap size in the y-axis. Defaults to 0.
-    """
     
-    def __init__(self, ysize, xsize, y_block_size, x_block_size, y_overlap=0, x_overlap=0):
+    Raises:
+        ValueError: If x_patch_size is larger than xsize or y_patch_size is larger than ysize.
+    """
+
+    def __init__(self, xsize, ysize, x_patch_size, y_patch_size, x_overlap=0, y_overlap=0):
+        if x_patch_size > xsize:
+            raise ValueError("x_patch_size cannot be larger than xsize.")
+        if y_patch_size > ysize:
+            raise ValueError("y_patch_size cannot be larger than ysize.")
+            
         self.xsize = xsize
         self.ysize = ysize
-        self.x_block_size = x_block_size
-        self.y_block_size = y_block_size
+        self.x_patch_size = x_patch_size
+        self.y_patch_size = y_patch_size
         self.x_overlap = x_overlap
         self.y_overlap = y_overlap
         self.current_i = 0
         self.current_j = 0
+
 
     def __iter__(self):
         """
@@ -36,6 +45,7 @@ class PatchGenerator:
             PatchGenerator: Iterator object.
         """
         return self
+
 
     def __next__(self):
         """
@@ -57,20 +67,20 @@ class PatchGenerator:
         i = self.current_i
         j = self.current_j
 
-        if i + self.y_block_size < self.ysize:
-            rows = self.y_block_size
+        if i + self.y_patch_size < self.ysize:
+            rows = self.y_patch_size
         else:
             rows = self.ysize - i
 
-        if j + self.x_block_size < self.xsize:
-            cols = self.x_block_size
+        if j + self.x_patch_size < self.xsize:
+            cols = self.x_patch_size
         else:
             cols = self.xsize - j
 
-        self.current_j += self.x_block_size - self.x_overlap
+        self.current_j += self.x_patch_size - self.x_overlap
         if self.current_j >= self.xsize:
             self.current_j = 0
-            self.current_i += self.y_block_size - self.y_overlap
+            self.current_i += self.y_patch_size - self.y_overlap
 
         return (i, j, rows, cols)
 
