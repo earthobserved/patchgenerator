@@ -3,7 +3,7 @@ requires = ['setuptools>=61']
 build-backend = 'setuptools.build_meta'
 [project]
 name = "patchgenerator"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="EarthObserved", email="info@earthobserved.com" },
 ]
