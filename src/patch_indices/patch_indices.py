@@ -10,31 +10,52 @@ class PatchGenerator:
     PatchGenerator class generates patches of specified size within given dimensions with optional overlap.
 
     Args:
-        xsize (int): Total size along the x-axis.
-        ysize (int): Total size along the y-axis.
-        x_patch_size (int): Patch size along the x-axis.
-        y_patch_size (int): Patch size along the y-axis.
-        x_overlap (int, optional): Overlap size in the x-axis. Defaults to 0.
-        y_overlap (int, optional): Overlap size in the y-axis. Defaults to 0.
+        
+        ysize (int): Total size along the y-axis (rows).
+        xsize (int): Total size along the x-axis (columns).
+        y_patch_size (int): Patch size along the y-axis (rows).
+        x_patch_size (int): Patch size along the x-axis (columns).
+        y_overlap (int, optional): Overlap size in the y-axis (rows). Defaults to 0.
+        x_overlap (int, optional): Overlap size in the x-axis (columns). Defaults to 0.
+        
     
     Raises:
         ValueError: If x_patch_size is larger than xsize or y_patch_size is larger than ysize.
     """
+    def __init__(self, ysize, xsize, y_patch_size, x_patch_size, y_overlap=0, x_overlap=0):
+        # assert ysize > 0 and xsize > 0, "Array size must be positive."
+        # assert y_patch_size > 0 and x_patch_size > 0, "Patch size must be positive."
+        # assert y_overlap >= 0 and x_overlap >= 0, "Overlap must be non-negative."
 
-    def __init__(self, xsize, ysize, x_patch_size, y_patch_size, x_overlap=0, y_overlap=0):
-        if x_patch_size > xsize:
-            raise ValueError("x_patch_size cannot be larger than xsize.")
+        # assert y_patch_size <= ysize, "Patch size along y-axis cannot exceed array size."
+        # assert x_patch_size <= xsize, "Patch size along x-axis cannot exceed array size."
+        # assert y_overlap <= y_patch_size, "Overlap along y-axis cannot exceed Patch size."
+        # assert x_overlap <= x_patch_size, "Overlap along x-axis cannot exceed Patch size."
+        
+        if ysize <= 0 or xsize <= 0:
+            raise ValueError("Array size must be positive.")
+        if y_patch_size <= 0 or x_patch_size <= 0:
+            raise ValueError("Patch size must be positive.")
+        if y_overlap < 0 or x_overlap < 0:
+            raise ValueError("Overlap must be non-negative.")
         if y_patch_size > ysize:
-            raise ValueError("y_patch_size cannot be larger than ysize.")
+            raise ValueError("Patch size along y-axis cannot exceed array size.")
+        if x_patch_size > xsize:
+            raise ValueError("Patch size along x-axis cannot exceed array size.")
+        if y_overlap > y_patch_size:
+            raise ValueError("Overlap along y-axis cannot exceed Patch size.")
+        if x_overlap > x_patch_size:
+            raise ValueError("Overlap along x-axis cannot exceed Patch size.")
+
             
-        self.xsize = xsize
         self.ysize = ysize
-        self.x_patch_size = x_patch_size
+        self.xsize = xsize
         self.y_patch_size = y_patch_size
-        self.x_overlap = x_overlap
+        self.x_patch_size = x_patch_size
         self.y_overlap = y_overlap
-        self.current_i = 0
-        self.current_j = 0
+        self.x_overlap = x_overlap
+        self.i = 0
+        self.j = 0
 
 
     def __iter__(self):
@@ -52,43 +73,58 @@ class PatchGenerator:
         Generates the next patch.
 
         Returns:
-            tuple: Block information as (i, j, rows, cols), where
-                i (int): Starting position along the y-axis.
-                j (int): Starting position along the x-axis.
-                rows (int): Number of rows in the patch.
-                cols (int): Number of columns in the patch.
-        
+            tuple: A tuple containing the starting row index (i), starting column index (j),
+            number of rows (rows), and number of columns (cols) for the next patch.
+
         Raises:
-            StopIteration: If the end of the iteration is reached.
+            StopIteration: When all patches have been generated.
         """
-        if self.current_i >= self.ysize:
+        if self.i >= self.ysize:
+            # print("self.i >= self.ysize", self.i, self.ysize)
+            raise StopIteration
+        if self.j >= self.xsize:
+            # print("self.j >= self.xsize", self.j, self.xsize)
             raise StopIteration
 
-        i = self.current_i
-        j = self.current_j
+        i = self.i
+        j = self.j
 
-        if i + self.y_patch_size < self.ysize:
+        if self.i + self.y_patch_size - self.y_overlap < self.ysize:
             rows = self.y_patch_size
         else:
-            rows = self.ysize - i
+            rows = self.ysize - self.i
 
-        if j + self.x_patch_size < self.xsize:
+        if self.j + self.x_patch_size - self.x_overlap < self.xsize:
             cols = self.x_patch_size
         else:
-            cols = self.xsize - j
+            cols = self.xsize - self.j
 
-        self.current_j += self.x_patch_size - self.x_overlap
-        if self.current_j >= self.xsize:
-            self.current_j = 0
-            self.current_i += self.y_patch_size - self.y_overlap
+        self.i += self.y_patch_size - self.y_overlap
+        if self.i >= self.ysize:
+            self.i = 0
+            self.j += self.x_patch_size - self.x_overlap
 
-        return (i, j, rows, cols)
+        return i, j, rows, cols
 
 
 if __name__ == "__main__":
-    patch_generator = PatchGenerator(100, 80, 10, 20, y_overlap=2, x_overlap=3)
-    for patch in patch_generator:
-        row_start, cols_start, row_end, cols_end = patch
-        print("row_start, cols_start, row_end, cols_end")
-        print(row_start, cols_start, row_end, cols_end)
+    import numpy as np
+    ysize = 1024
+    xsize = 1024
+    y_block_size = 512
+    x_block_size = 512
+    y_overlap = 100
+    x_overlap = 100
+        
+    arr = np.ones((ysize, xsize), dtype=np.uint8)
+    print(np.unique(arr, return_counts=True))
+    
+    patch_generator = PatchGenerator(ysize, xsize, y_block_size, x_block_size, y_overlap=y_overlap, x_overlap=x_overlap)
+    for i, j, rows, cols in patch_generator:
+        print(f"Clip array patch: i={i}, j={j}, rows={rows}, cols={cols}")
+        # print(f"{i}, {j}, {rows}, {cols}")
+        print(arr[i:i+rows, j:j+cols].shape)
+        arr[i:i+rows, j:j+cols] = 255
+        
+    print(np.unique(arr, return_counts=True))
         
